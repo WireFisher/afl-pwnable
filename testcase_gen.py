@@ -196,18 +196,26 @@ class tc_gen():
             return
 
         options = self.firstwords[self.sep]
-        option_count = 1
+        option_count = 0
+        #print options 
         for option in options:
+            option_count += 1
             print "[-] Testing suboption %d/%d" % (option_count,len(options))
             self.restart_sendline(option)
-            try:
-                response = self.recvline()
-            except OSError:
+            ret = self.recvall()
+            if len(ret) > 0:
+                response = ret[-1]
+            else:
                 continue
 
-            self.testcase += [option]
-            if response == self.menu_lastline:
+            #try:
+            #    response = self.recvline()
+            #except OSError:
+            #    continue
+
+            if response in self.sentences:
                 continue
+            self.testcase += [option]
             
             ''' test each string in inputs, save the responses'''
             lastline = ""
@@ -255,36 +263,48 @@ class tc_gen():
 
                 if all_empty:
                     break
-                longest_index = 0
-                shortest_index = 0
-                all_09 = True
-                all_aZ = True
-                for i in range(0,len(valid_inputs)):
-                    if len(valid_inputs[i]) >= len(valid_inputs[longest_index]):
-                        longest_index = i
-                    if len(valid_inputs[i]) <  len(valid_inputs[shortest_index]):
-                        shortest_index = i
-                    if valid_inputs[i].isdigit():
-                        all_aZ = False
-                    if valid_inputs[i].isalpha():
-                        all_09 = False
                 
-                #if len(valid_inputs) == (len(inputs) - 1):
-                #    self.testcase += [gen_pattern(len(valid_inputs[longest_index]))]
-                #    lastline = valid_responses[longest_index]
-                #else:
-                if all_aZ:
-                    self.testcase += [valid_inputs[longest_index]]
-                    lastline = valid_ends[longest_index]
-                elif all_09:
-                    self.testcase +=[valid_inputs[shortest_index]]
-                    lastline = valid_ends[shortest_index]
-                else:
-                    self.testcase += [valid_inputs[longest_index]]
-                    lastline = valid_ends[longest_index]
+                if len(valid_inputs) == 0:
+                    for i in range(1, len(responses)):
+                        valid_inputs += [inputs[i]]
+                        valid_responses += [responses[i]]
+                        valid_ends += [responses_end[i]]
+                
+                #print valid_inputs
+                #print valid_responses
+                #print valid_ends
+                if len(valid_inputs) > 0:
+                    longest_index = 0
+                    shortest_index = 0
+                    all_09 = True
+                    all_aZ = True
+                    for i in range(0,len(valid_inputs)):
+                        if len(valid_inputs[i]) >= len(valid_inputs[longest_index]):
+                            longest_index = i
+                        if len(valid_inputs[i]) <  len(valid_inputs[shortest_index]):
+                            shortest_index = i
+                        if valid_inputs[i].isdigit():
+                            all_aZ = False
+                        if valid_inputs[i].isalpha():
+                            all_09 = False
+                    
+                    #if len(valid_inputs) == (len(inputs) - 1):
+                    #    self.testcase += [gen_pattern(len(valid_inputs[longest_index]))]
+                    #    lastline = valid_responses[longest_index]
+                    #else:
+                    if all_aZ:
+                        self.testcase += [valid_inputs[longest_index]]
+                        lastline = valid_ends[longest_index]
+                    elif all_09:
+                        self.testcase +=[valid_inputs[shortest_index]]
+                        lastline = valid_ends[shortest_index]
+                    else:
+                        self.testcase += [valid_inputs[longest_index]]
+                        lastline = valid_ends[longest_index]
+
 
                 loop_count += 1
-            option_count += 1
+                #print self.testcase
 
     def run(self):
         self.test_potential()
@@ -297,6 +317,7 @@ class tc_gen():
 
 if __name__ == "__main__":
     g = tc_gen("./bin/simple_note")
+    #g = tc_gen("./bin/babyuse")
     g.run()
     print g.get_testcase()
     #gen_pattern(80)
