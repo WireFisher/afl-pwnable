@@ -89,6 +89,7 @@ class tc_gen():
                2. Words' length has to be same
                3. The amount of words has to be lager than 1'''
 
+        print "[-] Analyzing initial output"
         while True:
             try:
                 self.sentences += [self.recvline()]
@@ -158,6 +159,7 @@ class tc_gen():
             
 
     def test_potential(self):
+        print "[-] Testing options"
         for sep in self.potential_seps:
             is_different = False
             response = []
@@ -179,11 +181,14 @@ class tc_gen():
                 break
 
     def test_suboption(self):
+        print "[-] Testing suboptions"
         if self.sep == "":
             return
 
         options = self.firstwords[self.sep]
+        option_count = 1
         for option in options:
+            print "[-] Testing suboption %d/%d" % (option_count,len(options))
             self.restart_sendline(option)
             try:
                 response = self.recvline()
@@ -200,17 +205,17 @@ class tc_gen():
             while lastline != self.menu_lastline and loop_count < 8: # loop_count < 8 to avoid infinite loop
                 all_empty = True
                 responses = []
-                print self.testcase
-                print "lastline: " + lastline
+                #print self.testcase
+                #print "lastline: " + lastline
                 for pattern in inputs:
-                    print pattern
+                    #print pattern
                     try:
                         self.restart_sendline(self.testcase)      # have problems when it's read() and doesn't stop at \n
                         #self.recvuntil(lastline, timeout=_TIMEOUT)
                         self.recvall()
                         self.sendline(pattern)
                         ret = self.recvall()
-                        print ret
+                        #print ret
                         if len(ret) > 0:
                             responses += [ret[-1]]
                         else:
@@ -220,7 +225,7 @@ class tc_gen():
                         responses += [""]
 
                 for i in range(0, len(responses)):
-                    print responses[i]
+                    #print responses[i]
                     if len(responses[i]) > 0:
                         all_empty = False
                     if i == 0:
@@ -233,13 +238,19 @@ class tc_gen():
                 if all_empty:
                     break
                 loop_count += 1
+            option_count += 1
 
+    def run(self):
+        self.test_potential()
+        self.test_suboption()
+
+    def get_testcase(self):
+        return "\n".join(self.testcase)
 #TODO: - pick out words that are valid, use abnormal to test
 #      - set Timeout value properly
 
 
 if __name__ == "__main__":
     g = tc_gen("./bin/simple_note")
-    g.test_potential()
-    g.test_suboption()
-    print g.testcase
+    g.run()
+    print g.get_testcase()
