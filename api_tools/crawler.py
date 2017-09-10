@@ -15,14 +15,14 @@ HTTP_HEADER = {
 
 def download_challenge(challenge, directory):
     name = challenge['name']
-    meta_file = os.path.join(directory, name, '/metadata.json')
+    meta_file = os.path.join(directory, name, 'metadata.json')
     binary_url = challenge['binary_url']
     binary_file = os.path.join(directory, name, name)
 
     print('======================')
     print('Processing challenge', name)
 
-    if not os.path.exists(name):
+    if not os.path.exists(os.path.join(directory, name)):
         print('Creating directory for', name)
         os.makedirs(os.path.join(directory, name))
 

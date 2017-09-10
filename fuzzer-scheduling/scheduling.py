@@ -51,10 +51,13 @@ def get_finish_task():
     ]
     ans = []
     for problem in problems_dir:
+        # print("*********************************")
+        # print(os.listdir(os.path.join(WORKING_DIR_PATH, problem)), any([f.endswith("success") for f in os.listdir(os.path.join(WORKING_DIR_PATH, problem))]))
+        # print("*********************************")
         if any([
-           f.endswith("success") for f in os.listdir(problem)
+           f.endswith("success") for f in os.listdir(os.path.join(WORKING_DIR_PATH, problem))
         ]):
-            ans.append(problem)
+            ans.append(os.path.join(WORKING_DIR_PATH, problem, problem))
     return ans
 
 
@@ -71,9 +74,10 @@ class ProcessManager(object):
         def helper():
             while True:
                 time.sleep(10)
-                for p in self.task_finished:
+                for p in self.task_scheduled:
                     # 完成了则清除进程
-                    if not p.is_alive():
+                    if p.path in get_finish_task():
+                        p.terminate()
                         self.task_finished.append(p)
                         self.task_scheduled.remove(p)
                         print("[*] Task %s is stopped!" % p.name)
@@ -110,8 +114,8 @@ class ProcessManager(object):
             pass
         else:
             # print("[ ] Binary %s start analysis." % binary)
-            # p = start_new_fuzz_task(binary, COMMON_AFL_CORES, COMMON_DRILLING_CORES, get_tips.tips_path(binary))
-            p = start_new_fuzz_task(binary, COMMON_AFL_CORES, COMMON_DRILLING_CORES, None)
+            p = start_new_fuzz_task(binary, COMMON_AFL_CORES, COMMON_DRILLING_CORES, get_tips.tips_path(binary))
+            # p = start_new_fuzz_task(binary, COMMON_AFL_CORES, COMMON_DRILLING_CORES, None)
             # 给process对象添加一些属性，以便于管理。
             p.start_time = time.time()
             p.end_time = p.start_time + MAX_FUZZ_TIME * 60
@@ -128,10 +132,14 @@ class ProcessManager(object):
                     os.path.join(WORKING_DIR_PATH, f) for f in os.listdir(WORKING_DIR_PATH)
                     if os.path.isdir(os.path.join(WORKING_DIR_PATH, f))
                 ]
-                problems_names = [os.path.basename(n) for n in problems_dir]
+                problems_names = [os.path.basename(n.path) for n in self.task_scheduled]
+                finished_names = [os.path.basename(n.path) for n in self.task_finished]
+                paused_names = [os.path.basename(n.path) for n in self.task_paused]
                 print("[*] Loaded problems: %s" % problems_names)
-                bin_files = [os.path.join(f, 'binary') for f in problems_dir
-                             if os.path.exists(os.path.join(f, 'binary'))]
+                print("[*] Finished problems: %s" % finished_names)
+                print("[*] Paused problems: %s" % paused_names)
+                bin_files = [os.path.join(f, os.path.basename(f)) for f in problems_dir
+                             if os.path.exists(os.path.join(f, os.path.basename(f)))]
                 for task in bin_files:
                     names = [x.path for x in self.task_scheduled] + \
                             [x.path for x in self.task_finished] + \

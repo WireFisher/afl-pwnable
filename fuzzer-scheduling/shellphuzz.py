@@ -86,7 +86,7 @@ def start_fuzz(queue, binary, afl_cores=1, driller_workers=None, grease_with=Non
             while True:
                 time.sleep(10)
                 if f.found_crash():
-                    print("[!] Oh yeah~~~crash")
+                    print("[!] Oh yeah~~~ %s crashed." % binary)
                     crash_input_set_new = set(f.crashes())
                     if crash_input_set_new != crash_input_set:
                         # 向上提交
