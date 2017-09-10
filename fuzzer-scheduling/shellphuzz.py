@@ -91,7 +91,7 @@ def start_fuzz(queue, binary, afl_cores=1, driller_workers=None, grease_with=Non
                         diffs = crash_input_set_new - crash_input_set
                         for sample in diffs:
                             print "[*] New crash sample: %s" % sample
-                            queue.put(sample)
+                            queue.put((binary, sample))
                             crash_input_set.add(sample)
                 if fuzzer.timed_out():
                     print "[*] Timeout reached."

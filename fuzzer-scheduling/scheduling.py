@@ -7,9 +7,11 @@ import threading
 import time
 import process_util
 import get_tips
+import random
+import string
 from shellphuzz import start_fuzz
 
-BINARY_DIR_PATH = "/home/binary/"
+WORKING_DIR_PATH = "/home/binary/"
 
 # 最长的fuzz时间，以分钟计
 MAX_FUZZ_TIME = 120
@@ -25,21 +27,32 @@ crash_inputs = multiprocessing.Queue()
 processes = []
 
 
-################# DUMMY FUNCTION #################
-
-def submit(i):
-    print("[!] Pretend to submit...: %s" % i)
+def submit(binary, i):
+    print("[!] Submit...: \n[ ]Path: %s %s" % (binary, i))
+    problem_dir = os.path.dirname(binary)
+    random_suffix = "".join([
+        random.choice(string.ascii_letters + string.digits) for _ in range(8)
+    ])
+    payload_filename = os.path.join(problem_dir, "payload.bin." + random_suffix)
+    with open(payload_filename, "wb") as f:
+        f.write(i)
 
 
 def get_finish_task():
     """
-        通过调用其它人的组件，得到已完成的任务列表，在服务重启时有用，待完成。
+        通过调用其它人的组件，得到已完成的任务列表，在服务重启时有用，
         任务通过二进制文件的绝对路径字符串来标识。
-        TODO: 你们需要给我提供接口。
     """
-    return []
-
-##################################################
+    problems_dir = [
+        f for f in os.listdir(WORKING_DIR_PATH)
+        if os.path.isdir(os.path.join(WORKING_DIR_PATH, f))
+    ]
+    ans = []
+    for problem in problems_dir:
+        tmp_path = os.path.join(problem, "success.flag")
+        if os.path.exists(tmp_path):
+            ans.append(tmp_path)
+    return ans
 
 
 class ProcessManager(object):
@@ -82,6 +95,7 @@ class ProcessManager(object):
                             self.task_paused.remove(p)
                             process_util.resume_process(p.pid)
                             print("[ ] Task %s is resumed." % p.name)
+
         t2 = threading.Thread(target=resume_helper)
         t2.daemon = True
         t2.start()
@@ -102,8 +116,13 @@ class ProcessManager(object):
     def check_binary_directory(self):
         def helper():
             while True:
-                files = [f for f in os.listdir(BINARY_DIR_PATH) if os.path.isfile(os.path.join(BINARY_DIR_PATH, f))]
-                for task in files:
+                problems_dir = [
+                    f for f in os.listdir(WORKING_DIR_PATH)
+                    if os.path.isdir(os.path.join(WORKING_DIR_PATH, f))
+                ]
+                bin_files = [os.path.join(f, 'binary') for f in problems_dir
+                             if os.path.exists(os.path.join(f, 'binary'))]
+                for task in bin_files:
                     names = [n.path for n in self.task_scheduled] + \
                             [n.path for n in self.task_finished] + \
                             [n.path for n in self.task_paused]
@@ -139,7 +158,7 @@ def submit_input():
     def helper():
         while True:
             tmp = crash_inputs.get()
-            submit(tmp)  # TODO: 这里是你们要给我提供的接口函数
+            submit(*tmp)
 
     t = threading.Thread(target=helper)
     t.daemon = True
