@@ -256,16 +256,32 @@ class tc_gen():
                 if all_empty:
                     break
                 longest_index = 0
+                shortest_index = 0
+                all_09 = True
+                all_aZ = True
                 for i in range(0,len(valid_inputs)):
                     if len(valid_inputs[i]) >= len(valid_inputs[longest_index]):
                         longest_index = i
+                    if len(valid_inputs[i]) <  len(valid_inputs[shortest_index]):
+                        shortest_index = i
+                    if valid_inputs[i].isdigit():
+                        all_aZ = False
+                    if valid_inputs[i].isalpha():
+                        all_09 = False
                 
                 #if len(valid_inputs) == (len(inputs) - 1):
                 #    self.testcase += [gen_pattern(len(valid_inputs[longest_index]))]
                 #    lastline = valid_responses[longest_index]
                 #else:
-                self.testcase += [valid_inputs[longest_index]]
-                lastline = valid_ends[longest_index]
+                if all_aZ:
+                    self.testcase += [valid_inputs[longest_index]]
+                    lastline = valid_ends[longest_index]
+                elif all_09:
+                    self.testcase +=[valid_inputs[shortest_index]]
+                    lastline = valid_ends[shortest_index]
+                else:
+                    self.testcase += [valid_inputs[longest_index]]
+                    lastline = valid_ends[longest_index]
 
                 loop_count += 1
             option_count += 1
@@ -276,9 +292,8 @@ class tc_gen():
 
     def get_testcase(self):
         return "\n".join(self.testcase)
-#TODO: - pick out words that are valid, use abnormal to test
-#      - set Timeout value properly
 
+#TODO: - set Timeout value properly
 
 if __name__ == "__main__":
     g = tc_gen("./bin/simple_note")
