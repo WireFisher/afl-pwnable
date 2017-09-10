@@ -4,7 +4,7 @@ import re
 import time
 from zio import *
 
-_TIMEOUT = 0.2
+_TIMEOUT = 0.02
 separators = ['. ', ': ', '.', ':', ' ']
 
 inputs  = ['!z9@']      # wrong input
@@ -12,11 +12,20 @@ inputs += ['0']         # index
 inputs += ['1']
 inputs += ['4']         # size
 inputs += ['16']
-inputs += ['130']
+inputs += ['132']
 inputs += ['a' * 4]     # string
 inputs += ['a' * 16]
-inputs += ['a' * 130]
+inputs += ['a' * 132]
 
+fill_pattern = '%10$s'
+
+def gen_pattern(length):
+    if length > 8:
+        pattern = '%%%d$s' % ((6+length/4)/2)
+        pattern = pattern.ljust(8, "a")
+        #pattern = pattern.ljust(length, "\x00\x00\x33\x23")
+
+    print pattern
 
 class tc_gen():
 
@@ -40,6 +49,7 @@ class tc_gen():
         self.potential_seps = []
         self.sep = ''
         self.menu_lastline = ''
+        self.menu_firstline = ''
         self.testcase = []
         self.exploit = ''
 
@@ -154,7 +164,7 @@ class tc_gen():
                 for string in s:
                     self.sendline(string)
                     time.sleep(0.01)
-            except:
+            except OSError:
                 return # This shouldn't happened
             
 
@@ -205,7 +215,7 @@ class tc_gen():
             while lastline != self.menu_lastline and loop_count < 8: # loop_count < 8 to avoid infinite loop
                 all_empty = True
                 responses = []
-                #print self.testcase
+                responses_end = []
                 #print "lastline: " + lastline
                 for pattern in inputs:
                     #print pattern
@@ -214,29 +224,49 @@ class tc_gen():
                         #self.recvuntil(lastline, timeout=_TIMEOUT)
                         self.recvall()
                         self.sendline(pattern)
+                        responses += [self.recvline()]
                         ret = self.recvall()
-                        #print ret
                         if len(ret) > 0:
-                            responses += [ret[-1]]
+                            responses_end += [ret[-1]]
                         else:
-                            responses += [""]
+                            responses_end += [responses[-1]]
 
                     except OSError:
                         responses += [""]
 
+                '''find which response is the best suitable'''
+                valid_inputs = []
+                valid_responses = []
+                valid_ends = []
                 for i in range(0, len(responses)):
                     #print responses[i]
                     if len(responses[i]) > 0:
                         all_empty = False
                     if i == 0:
                         continue
-                    if responses[i] != responses[0] or responses[i] == self.menu_lastline:
-                        self.testcase += [inputs[i]]
-                        lastline = responses[i]
-                        break
+
+                    if responses[i] != responses[0] or responses[i] in self.sentences:
+                        valid_inputs += [inputs[i]]
+                        valid_responses += [responses[i]]
+                        valid_ends += [responses_end[i]]
+                        #self.testcase += [inputs[i]]
+                        #lastline = responses[i]
+                        #break
 
                 if all_empty:
                     break
+                longest_index = 0
+                for i in range(0,len(valid_inputs)):
+                    if len(valid_inputs[i]) >= len(valid_inputs[longest_index]):
+                        longest_index = i
+                
+                #if len(valid_inputs) == (len(inputs) - 1):
+                #    self.testcase += [gen_pattern(len(valid_inputs[longest_index]))]
+                #    lastline = valid_responses[longest_index]
+                #else:
+                self.testcase += [valid_inputs[longest_index]]
+                lastline = valid_ends[longest_index]
+
                 loop_count += 1
             option_count += 1
 
@@ -254,3 +284,4 @@ if __name__ == "__main__":
     g = tc_gen("./bin/simple_note")
     g.run()
     print g.get_testcase()
+    #gen_pattern(80)
