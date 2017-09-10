@@ -6,6 +6,17 @@ from zio import *
 _TIMEOUT = 3
 separators = ['. ', ': ', '.', ':', ' ']
 
+inputs  = ['!z9@']      # wrong input
+inputs += ['0']         # index
+inputs += ['1']
+inputs += ['4']         # size
+inputs += ['16']
+inputs += ['130']
+inputs += ['a' * 4]     # string
+inputs += ['a' * 16]
+inputs += ['a' * 130]
+
+
 class tc_gen():
 
     def __init__(self, executable):
@@ -18,12 +29,20 @@ class tc_gen():
         if not isinstance(executable, str):
             raise Exception("please set a string of filename :)")
         
+#TODO chmod 777
         self.executable = executable
         self.load_executable()
 
+        self.have_menu = False
         self.sentences = []
         self.firstwords = {}
         self.potential_seps = []
+        self.sep = ''
+        self.menu_lastline = ''
+        self.testcase = ''
+        self.exploit = ''
+
+        self.analyze()
 
     def recvline(self):
         return self.io.read_until(["\r\n", "\n", EOF], timeout=_TIMEOUT)
@@ -61,6 +80,9 @@ class tc_gen():
             except TIMEOUT:
                 break
         
+        if len(self.sentences) > 0:
+            self.menu_lastline = self.sentences[-1]
+
         for sentence in self.sentences:
             result = self.get_first(sentence)
             if result:
@@ -81,35 +103,104 @@ class tc_gen():
                     if length != len(word) or isdigit != word.isdigit() or isalpha != word.isalpha():
                         continue
                 self.potential_seps += [sep]
-
+        
+        print "potential_seps"
         print self.potential_seps
 
     def send_for_test(self, s):
         try:
             self.io.close()
             self.load_executable()
-            self.recvuntil(self.sentences[-1], timeout=_TIMEOUT)
+            self.recvuntil(self.menu_lastline, timeout=_TIMEOUT)
         except TIMEOUT:
-            return '' #don't know what to do
+            return [] # don't know what to do
 
         self.sendline(s)
         
         try:
-            return self.recvline()
+            return [self.recvline()]
         except TIMEOUT:
-            return ''
+            return []
+
+    def restart_sendline(self, s):
+        try:
+            self.io.close()
+            self.load_executable()
+            self.recvuntil(self.menu_lastline, timeout=_TIMEOUT)
+        except TIMEOUT:
+            return  # This shouldn't happened
+        self.sendline(s)
 
     def test_potential(self):
         for sep in self.potential_seps:
             is_different = False
-            response = self.send_for_test(self.firstwords[sep][0])
+            response = []
+            if len(self.firstwords[sep]) == 0:
+                continue
+            response += self.send_for_test(self.firstwords[sep][0])
             for word in self.firstwords[sep][1:]:
-                self.send_for_test(word)
-#TODO pick out words that are valid, use abnormal to test
+                response += self.send_for_test(word)
+
+            for i in range(0, len(response)):
+                for j in range(i, len(response)):
+                    if response[i] == response[j]:
+                        is_different = True
+                        break
+                if is_different:
+                    break
+            if is_different:
+                self.sep = sep
+                break
+
+    def test_suboption(self):
+        if self.sep == "":
+            return
+
+        options = self.firstwords[self.sep]
+        for option in options:
+            self.restart_sendline(option)
+            try:
+                response = self.recvline()
+            except OSError:
+                continue
+
+            self.testcase += option + "\n"
+            if response == self.menu_lastline:
+                continue
+            
+            ''' test each string in inputs, save the responses'''
+            lastline = ""
+            loop_count = 0
+            while lastline != self.menu_lastline and loop_count < 8: # loop_count < 8 to avoid infinite loop
+                responses = []
+                for pattern in inputs:
+                    try:
+                        self.restart_sendline(self.testcase)      # have problems when it's read() and doesn't stop at \n
+                        self.recvline()
+                        self.sendline(pattern)
+                        responses += [self.recvline()]
+                    except OSError:
+                        responses += ""
+
+                for i in range(0, len(responses)):
+                    if responses[i] != responses[0]:
+                        self.testcase += inputs[i] + "\n"
+                        lastline = responses[i]
+                print self.testcase
+                
+                print "lastline: " + lastline
+                loop_count += 1
+
+            #self.restart_sendline(self.testcase)
+            #self.recvuntil(lastline, timeout=_TIMEOUT)
+
+
+#TODO: - pick out words that are valid, use abnormal to test
+#      - set Timeout value properly
 
 
 if __name__ == "__main__":
     g = tc_gen("./bin/simple_note")
-    #print g.recvline()
-    g.analyze()
-    print g.send_for_test('1')
+    g.test_potential()
+    g.test_suboption()
+    print g.testcase
