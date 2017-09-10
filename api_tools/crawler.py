@@ -15,9 +15,9 @@ HTTP_HEADER = {
 
 def download_challenge(challenge, directory):
     name = challenge['name']
-    meta_file = directory + name + '/metadata.json'
+    meta_file = os.path.join(directory, name, '/metadata.json')
     binary_url = challenge['binary_url']
-    binary_file = directory + name + '/binary'
+    binary_file = os.path.join(directory, name, name)
 
     print('======================')
     print('Processing challenge', name)
@@ -83,6 +83,6 @@ def crawl_challenges(url, token, directory):
 
 
 if __name__ == '__main__':
-    with open('config.json') as configFile:
+    with open(os.path.join(os.path.dirname(__file__), 'config.json')) as configFile:
         config = json.load(configFile)
         crawl_challenges(config['challenges_url'], config['token'], config['directory'])
