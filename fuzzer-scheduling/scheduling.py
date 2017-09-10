@@ -6,8 +6,6 @@ import multiprocessing
 import threading
 import time
 import process_util
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
 from shellphuzz import start_fuzz
 
 BINARY_DIR_PATH = "/home/binary/"
@@ -103,7 +101,8 @@ class ProcessManager(object):
     def check_binary_directory(self):
         def helper():
             while True:
-                for task in tasks:
+                files = [f for f in os.listdir(BINARY_DIR_PATH) if os.path.isfile(os.path.join(BINARY_DIR_PATH, f))]
+                for task in files:
                     names = [n.path for n in self.task_scheduled] + \
                             [n.path for n in self.task_finished] + \
                             [n.path for n in self.task_paused]
@@ -145,40 +144,10 @@ def submit_input():
     t.daemon = True
     t.start()
 
-
-class FileCreateEventHandler(FileSystemEventHandler):
-    def on_created(self, event):
-        print("[ ] File %s created." % event.src_path)
-        tasks.append(event.src_path)
-
-    def on_modified(self, event):
-        # TODO: 需先停止之前的任务，再添加新任务。
-        pass
-
-
-def watch_directory(path):
-    """
-        事件驱动，监视二进制文件存放的文件夹，一旦文件发生变化就将二进制文件放置进入fuzz队列。
-    """
-    # 添加文件夹中已有文件，并添加过滤程序
-    files_already_exists = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
-    files_already_exists = list(set(files_already_exists) - set(get_finish_task()))
-    tasks.extend(files_already_exists)
-
-    # 监视文件夹
-    event_handler = FileCreateEventHandler()
-    observer = Observer()
-    t = threading.Thread(target=observer.schedule, args=(event_handler, path))
-    t.daemon = True
-    t.start()
-    print("[*] Directory watchdog started.")
-
-
 def main():
     """
         事件主循环。
     """
-    watch_directory(BINARY_DIR_PATH)
     ProcessManager().duty()
     submit_input()
 
