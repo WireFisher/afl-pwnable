@@ -49,9 +49,10 @@ def get_finish_task():
     ]
     ans = []
     for problem in problems_dir:
-        tmp_path = os.path.join(problem, "success.flag")
-        if os.path.exists(tmp_path):
-            ans.append(tmp_path)
+        if any([
+           f.endswith("success") for f in os.listdir(problem)
+        ]):
+            ans.append(problem)
     return ans
 
 
