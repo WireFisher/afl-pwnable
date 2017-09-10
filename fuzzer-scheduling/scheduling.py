@@ -63,6 +63,8 @@ class ProcessManager(object):
         print("[*] Process Manager started!")
 
     def watch_processes(self):
+        print("[*] Starting watching processes statues!")
+
         def helper():
             while True:
                 time.sleep(10)
@@ -114,12 +116,16 @@ class ProcessManager(object):
             print("[*] Task %s is added." % p.name)
 
     def check_binary_directory(self):
+        print("[*] Starting watching working directory!")
+
         def helper():
             while True:
                 problems_dir = [
                     f for f in os.listdir(WORKING_DIR_PATH)
                     if os.path.isdir(os.path.join(WORKING_DIR_PATH, f))
                 ]
+                problems_names = [os.path.basename(n) for n in problems_dir]
+                print("[*] Loaded problems: %s" % problems_names)
                 bin_files = [os.path.join(f, 'binary') for f in problems_dir
                              if os.path.exists(os.path.join(f, 'binary'))]
                 for task in bin_files:
@@ -169,6 +175,21 @@ def main():
     """
         事件主循环。
     """
+    banner = '''
+         _      _____ _     ____  ____  _      _____   _____  ____          
+    / \  /|/  __// \   /   _\/  _ \/ \__/|/  __/  /__ __\/  _ \         
+    | |  |||  \  | |   |  /  | / \|| |\/|||  \      / \  | / \|         
+    | |/\|||  /_ | |_/\|  \_ | \_/|| |  |||  /_     | |  | \_/|         
+    \_/  \|\____\\____/\____/\____/\_/  \|\____\    \_/  \____/         
+                                                                        
+     ____  _____ _           ____  _      _      ____  ____  _     _____
+    /  _ \/    // \         /  __\/ \  /|/ \  /|/  _ \/  _ \/ \   /  __/
+    | / \||  __\| |   _____ |  \/|| |  ||| |\ ||| / \|| | //| |   |  \  
+    | |-||| |   | |_/\\____\|  __/| |/\||| | \||| |-||| |_\\| |_/\|  /_ 
+    \_/ \|\_/   \____/      \_/   \_/  \|\_/  \|\_/ \|\____/\____/\____\
+                                                                    
+    '''
+    print(banner)
     ProcessManager().duty()
     submit_input()
 

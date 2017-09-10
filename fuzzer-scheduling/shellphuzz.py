@@ -94,7 +94,7 @@ def start_fuzz(queue, binary, afl_cores=1, driller_workers=None, grease_with=Non
                             queue.put((binary, sample))
                             crash_input_set.add(sample)
                 if fuzzer.timed_out():
-                    print "[*] Timeout reached."
+                    print "[*] Fuzzer Timeout reached."
                     break
     except KeyboardInterrupt:
         print "[*] Aborting wait. Ctrl-C again for KeyboardInterrupt."

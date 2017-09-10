@@ -33,6 +33,7 @@ class timeout:
 
 
 def tips_path(path):
+    print("[*] Let's find out some tips.")
     tmp_path = os.path.join("/tmp", hashlib.sha256(path).hexdigest())
     try:
         with timeout(seconds=90):
