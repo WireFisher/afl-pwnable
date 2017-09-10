@@ -31,15 +31,17 @@ processes = []
 def submit(i):
     print("[!] Pretend to submit...: %s" % i)
 
+
 def get_finish_task():
-    '''
+    """
         通过调用其它人的组件，得到已完成的任务列表，在服务重启时有用，待完成。
         任务通过二进制文件的绝对路径字符串来标识。
         TODO: 你们需要给我提供接口。
-    '''
+    """
     return []
 
 ##################################################
+
 
 class ProcessManager(object):
     def __init__(self):
@@ -119,9 +121,9 @@ class ProcessManager(object):
 
 
 def start_new_fuzz_task(binary, afl_core, drilling_core):
-    '''
+    """
         运行shellphuzz程序，返回Process对象。
-    '''
+    """
     process = multiprocessing.Process(target=start_fuzz, args=(
         crash_inputs, binary, afl_core, drilling_core
     ))
@@ -130,9 +132,9 @@ def start_new_fuzz_task(binary, afl_core, drilling_core):
 
 
 def submit_input():
-    '''
+    """
         开始提交输入的线程。
-    '''
+    """
 
     def helper():
         while True:
@@ -155,9 +157,9 @@ class FileCreateEventHandler(FileSystemEventHandler):
 
 
 def watch_directory(path):
-    '''
+    """
         事件驱动，监视二进制文件存放的文件夹，一旦文件发生变化就将二进制文件放置进入fuzz队列。
-    '''
+    """
     # 添加文件夹中已有文件，并添加过滤程序
     files_already_exists = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
     files_already_exists = list(set(files_already_exists) - set(get_finish_task()))
@@ -173,9 +175,9 @@ def watch_directory(path):
 
 
 def main():
-    '''
+    """
         事件主循环。
-    '''
+    """
     watch_directory(BINARY_DIR_PATH)
     ProcessManager().duty()
     submit_input()
