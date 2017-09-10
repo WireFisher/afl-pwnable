@@ -6,6 +6,7 @@ import multiprocessing
 import threading
 import time
 import process_util
+import get_tips
 from shellphuzz import start_fuzz
 
 BINARY_DIR_PATH = "/home/binary/"
@@ -57,7 +58,7 @@ class ProcessManager(object):
                     if not p.is_alive():
                         self.task_finished.append(p)
                         self.task_scheduled.remove(p)
-                        print("[*] Task %s is finished!" % p.name)
+                        print("[*] Task %s is stopped!" % p.name)
 
                     # 检查进程是否超时，超时则暂停进程
                     if time.time() > p.end_time:
@@ -90,7 +91,7 @@ class ProcessManager(object):
             pass
         else:
             self.task_scheduled.append(binary)
-            p = start_new_fuzz_task(binary, COMMON_AFL_CORES, COMMON_DRILLING_CORES)
+            p = start_new_fuzz_task(binary, COMMON_AFL_CORES, COMMON_DRILLING_CORES, get_tips.tips_path(binary))
             # 给process对象添加一些属性，以便于管理。
             p.start_time = time.time()
             p.end_time = p.start_time + MAX_FUZZ_TIME * 60
@@ -119,12 +120,12 @@ class ProcessManager(object):
         self.watch_processes()
 
 
-def start_new_fuzz_task(binary, afl_core, drilling_core):
+def start_new_fuzz_task(binary, afl_core, drilling_core, grease_with=None):
     """
         运行shellphuzz程序，返回Process对象。
     """
     process = multiprocessing.Process(target=start_fuzz, args=(
-        crash_inputs, binary, afl_core, drilling_core
+        crash_inputs, binary, afl_core, drilling_core, grease_with
     ))
 
     return process
@@ -143,6 +144,7 @@ def submit_input():
     t = threading.Thread(target=helper)
     t.daemon = True
     t.start()
+
 
 def main():
     """
