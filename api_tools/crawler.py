@@ -24,7 +24,7 @@ def download_challenge(challenge, directory):
 
     if not os.path.exists(name):
         print('Creating directory for', name)
-        os.mkdir(name)
+        os.makedirs(os.path.join(directory, name))
 
     if not os.path.exists(meta_file):
         print('Writing metadata for', name)
@@ -67,6 +67,7 @@ def download_challenge(challenge, directory):
                 print('Oh no, MD5 changed, writing new file')
                 file.seek(0)
                 file.write(binary)
+    os.chmod(binary_file, 0o755)
 
 
 def crawl_challenges(url, token, directory):

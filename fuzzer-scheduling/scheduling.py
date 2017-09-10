@@ -1,5 +1,5 @@
 #!/usr/bin/env python2
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
 
 import os
 import multiprocessing
@@ -9,9 +9,11 @@ import process_util
 import get_tips
 import random
 import string
+import pdb
 from shellphuzz import start_fuzz
+from pyfiglet import Figlet
 
-WORKING_DIR_PATH = "/home/binary/"
+WORKING_DIR_PATH = "/tmp/work"
 
 # 最长的fuzz时间，以分钟计
 MAX_FUZZ_TIME = 120
@@ -24,7 +26,7 @@ MAX_TASKS_RUNNING = 3
 
 tasks = []
 crash_inputs = multiprocessing.Queue()
-processes = []
+# processes = []
 
 
 def submit(binary, i):
@@ -64,12 +66,12 @@ class ProcessManager(object):
         print("[*] Process Manager started!")
 
     def watch_processes(self):
-        print("[*] Starting watching processes statues!")
+        print("[*] Starting watching processes states!")
 
         def helper():
             while True:
                 time.sleep(10)
-                for p in processes:
+                for p in self.task_finished:
                     # 完成了则清除进程
                     if not p.is_alive():
                         self.task_finished.append(p)
@@ -107,14 +109,15 @@ class ProcessManager(object):
         if len(self.task_scheduled) > MAX_TASKS_RUNNING:
             pass
         else:
-            self.task_scheduled.append(binary)
-            p = start_new_fuzz_task(binary, COMMON_AFL_CORES, COMMON_DRILLING_CORES, get_tips.tips_path(binary))
+            # print("[ ] Binary %s start analysis." % binary)
+            # p = start_new_fuzz_task(binary, COMMON_AFL_CORES, COMMON_DRILLING_CORES, get_tips.tips_path(binary))
+            p = start_new_fuzz_task(binary, COMMON_AFL_CORES, COMMON_DRILLING_CORES, None)
             # 给process对象添加一些属性，以便于管理。
             p.start_time = time.time()
             p.end_time = p.start_time + MAX_FUZZ_TIME * 60
             p.path = binary
-            processes.append(p)
-            print("[*] Task %s is added." % p.name)
+            self.task_scheduled.append(p)
+            print("[*] Task %s is added." % p.path)
 
     def check_binary_directory(self):
         print("[*] Starting watching working directory!")
@@ -122,7 +125,7 @@ class ProcessManager(object):
         def helper():
             while True:
                 problems_dir = [
-                    f for f in os.listdir(WORKING_DIR_PATH)
+                    os.path.join(WORKING_DIR_PATH, f) for f in os.listdir(WORKING_DIR_PATH)
                     if os.path.isdir(os.path.join(WORKING_DIR_PATH, f))
                 ]
                 problems_names = [os.path.basename(n) for n in problems_dir]
@@ -130,9 +133,9 @@ class ProcessManager(object):
                 bin_files = [os.path.join(f, 'binary') for f in problems_dir
                              if os.path.exists(os.path.join(f, 'binary'))]
                 for task in bin_files:
-                    names = [n.path for n in self.task_scheduled] + \
-                            [n.path for n in self.task_finished] + \
-                            [n.path for n in self.task_paused]
+                    names = [x.path for x in self.task_scheduled] + \
+                            [x.path for x in self.task_finished] + \
+                            [x.path for x in self.task_paused]
                     if task not in names:
                         self.add_new_task(task)
                 time.sleep(10)
@@ -150,9 +153,11 @@ def start_new_fuzz_task(binary, afl_core, drilling_core, grease_with=None):
     """
         运行shellphuzz程序，返回Process对象。
     """
+    print("==============================================")
     process = multiprocessing.Process(target=start_fuzz, args=(
         crash_inputs, binary, afl_core, drilling_core, grease_with
     ))
+    process.start()
 
     return process
 
@@ -170,30 +175,20 @@ def submit_input():
     t = threading.Thread(target=helper)
     t.daemon = True
     t.start()
+    return t
 
 
 def main():
     """
         事件主循环。
     """
-    banner = '''
-         _      _____ _     ____  ____  _      _____   _____  ____          
-    / \  /|/  __// \   /   _\/  _ \/ \__/|/  __/  /__ __\/  _ \         
-    | |  |||  \  | |   |  /  | / \|| |\/|||  \      / \  | / \|         
-    | |/\|||  /_ | |_/\|  \_ | \_/|| |  |||  /_     | |  | \_/|         
-    \_/  \|\____\\____/\____/\____/\_/  \|\____\    \_/  \____/         
-                                                                        
-     ____  _____ _           ____  _      _      ____  ____  _     _____
-    /  _ \/    // \         /  __\/ \  /|/ \  /|/  _ \/  _ \/ \   /  __/
-    | / \||  __\| |   _____ |  \/|| |  ||| |\ ||| / \|| | //| |   |  \  
-    | |-||| |   | |_/\\____\|  __/| |/\||| | \||| |-||| |_\\| |_/\|  /_ 
-    \_/ \|\_/   \____/      \_/   \_/  \|\_/  \|\_/ \|\____/\____/\____\
-                                                                    
-    '''
-    print(banner)
+    f = Figlet(font='standard')
+    print(f.renderText('Weicome to AFL-pwnable'))
     ProcessManager().duty()
-    submit_input()
+    t = submit_input()
 
 
 if __name__ == '__main__':
     main()
+    while True:
+        time.sleep(1)

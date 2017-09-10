@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import os
 import sys
@@ -12,8 +13,8 @@ import tarfile
 import importlib
 import logging.config
 
-def start_fuzz(queue, binary, afl_cores=1, driller_workers=None, grease_with=None, force_interval=None, 
-               work_dir="/dev/shm/work/", first_crash=False, timeout=None, ipython=False, tarball=None, 
+def start_fuzz(queue, binary, afl_cores=1, driller_workers=None, grease_with=None, force_interval=None,
+               work_dir="/dev/shm/work/", first_crash=False, timeout=None, ipython=False, tarball=None,
                helper_module=None, no_dictionary=False, logcfg=".shellphuzz.ini"):
     """
         parser.add_argument('binary', help="the path to the target binary to fuzz")
@@ -67,25 +68,26 @@ def start_fuzz(queue, binary, afl_cores=1, driller_workers=None, grease_with=Non
     )
 
     print "[*] Creating fuzzer..."
-    fuzzer = fuzzer.Fuzzer(
+    f = fuzzer.Fuzzer(
         binary, work_dir, afl_count=afl_cores, force_interval=force_interval,
         create_dictionary=not no_dictionary, stuck_callback=stuck_callback, time_limit=timeout
     )
 
     # start it!
     print "[*] Starting fuzzer..."
-    fuzzer.start()
+    f.start()
     start_time = time.time()
 
     try:
         # if timeout or first_crash:
-        if True: 
+        if True:
             # 周期性的检查是否出现了新的可导致崩溃的测试用例
 
             while True:
                 time.sleep(10)
-                if fuzzer.found_crash():
-                    crash_input_set_new = set(fuzzer.crashes())
+                if f.found_crash():
+                    print("[!] Oh yeah~~~crash")
+                    crash_input_set_new = set(f.crashes())
                     if crash_input_set_new != crash_input_set:
                         # 向上提交
                         diffs = crash_input_set_new - crash_input_set
@@ -93,7 +95,7 @@ def start_fuzz(queue, binary, afl_cores=1, driller_workers=None, grease_with=Non
                             print "[*] New crash sample: %s" % sample
                             queue.put((binary, sample))
                             crash_input_set.add(sample)
-                if fuzzer.timed_out():
+                if f.timed_out():
                     print "[*] Fuzzer Timeout reached."
                     break
     except KeyboardInterrupt:

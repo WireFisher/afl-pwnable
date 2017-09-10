@@ -1,5 +1,6 @@
 .vscode/
 .DS_Store
+*.pyc
 
 
 # Created by https://www.gitignore.io/api/pycharm

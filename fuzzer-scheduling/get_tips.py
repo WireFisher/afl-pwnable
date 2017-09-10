@@ -5,6 +5,7 @@ import sys
 import os.path
 import hashlib
 import signal
+import timeout_decorator
 
 sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
@@ -34,16 +35,21 @@ class timeout:
 
 def tips_path(path):
     print("[*] Let's find out some tips.")
-    tmp_path = os.path.join("/tmp", hashlib.sha256(path).hexdigest())
+
+    @timeout_decorator.timeout(90, use_signals=False, timeout_exception=TimeoutException)
+    def helper(path):
+        tmp_path = os.path.join("/tmp", hashlib.sha256(path).hexdigest())
+        if not os.path.exists(tmp_path):
+            os.makedirs(tmp_path)
+        g = testcase_gen.tc_gen(path)
+        g.run()
+        with open(os.path.join(tmp_path, "testcase.txt"), "wb") as f:
+            f.write(g.get_testcase())
+        print("[ ] testcase-gen success.")
+        return tmp_path
+
     try:
-        with timeout(seconds=90):
-            if not os.path.exists(tmp_path):
-                os.makedirs(tmp_path)
-            g = testcase_gen.tc_gen(path)
-            g.run()
-            with open(os.path.join(tmp_path, "testcase.txt"), "wb") as f:
-                f.write(g.get_testcase())
-            print("[ ] testcase-gen success.")
+        tmp_path = helper(path)
     except TimeoutException:
         print("[!] testcase-gen timeout!")
         return None
