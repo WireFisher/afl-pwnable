@@ -14,7 +14,7 @@ import logging.config
 
 def start_fuzz(queue, binary, afl_cores=1, driller_workers=None, grease_with=None, force_interval=None, 
                work_dir="/dev/shm/work/", first_crash=False, timeout=None, ipython=False, tarball=None, 
-               helper_module=None, no_dictionary=False, logcfg=".shellphuzz.ini")
+               helper_module=None, no_dictionary=False, logcfg=".shellphuzz.ini"):
     '''
         parser.add_argument('binary', help="the path to the target binary to fuzz")
         parser.add_argument('-g', '--grease-with', help="A directory of inputs to grease the fuzzer with when it gets stuck.")
