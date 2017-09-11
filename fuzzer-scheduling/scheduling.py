@@ -51,9 +51,6 @@ def get_finish_task():
     ]
     ans = []
     for problem in problems_dir:
-        # print("*********************************")
-        # print(os.listdir(os.path.join(WORKING_DIR_PATH, problem)), any([f.endswith("success") for f in os.listdir(os.path.join(WORKING_DIR_PATH, problem))]))
-        # print("*********************************")
         if any([
            f.endswith("success") for f in os.listdir(os.path.join(WORKING_DIR_PATH, problem))
         ]):
@@ -74,20 +71,30 @@ class ProcessManager(object):
         def helper():
             while True:
                 time.sleep(10)
+                need_terminate = []
+                need_pause = []
                 for p in self.task_scheduled:
                     # 完成了则清除进程
                     if p.path in get_finish_task():
-                        p.terminate()
-                        self.task_finished.append(p)
-                        self.task_scheduled.remove(p)
-                        print("[*] Task %s is stopped!" % p.name)
+                        need_terminate.append(p)
+                for p in need_terminate:
+                    # p.terminate()
+                    process_util.kill_process_familly(p.pid)
+                    self.task_finished.append(p)
+                    self.task_scheduled.remove(p)
+                    print("[*] Task %s is stopped!" % p.name)
 
-                    # 检查进程是否超时，超时则暂停进程
+                for p in self.task_scheduled:
+                    # 检查进程是否超时，超时则~~暂停~~ 杀死进程
                     if time.time() > p.end_time:
-                        process_util.pause_process(p.pid)
-                        self.task_scheduled.remove(p)
-                        self.task_paused.append(p)
-                        print("[ ] Task %s is paused." % p.name)
+                        need_pause.append(p)
+                for p in need_pause:
+                    # process_util.pause_process(p.pid)
+                    process_util.kill_process_familly(p.pid)
+                    self.task_scheduled.remove(p)
+                    self.task_paused.append(p)
+                    print("[ ] Task %s is paused." % p.name)
+
 
         t1 = threading.Thread(target=helper)
         t1.daemon = True
