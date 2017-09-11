@@ -52,6 +52,7 @@ def submit_challenge(token, d):
                 metadata = json.load(meta_file)
                 access = metadata['access']
                 for server in access:
+                    time.sleep(0.5)
                     if submit_to_server(server, payload, token):
                         with open(payload_file + '.success', 'w') as flag:
                             flag.write(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
