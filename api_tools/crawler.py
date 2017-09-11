@@ -5,6 +5,7 @@ import requests
 import json
 import os
 import hashlib
+import shutil
 
 HTTP_HEADER = {
     'Content-Type': 'application/json',
@@ -68,6 +69,16 @@ def download_challenge(challenge, directory):
                 file.seek(0)
                 file.write(binary)
     os.chmod(binary_file, 0o755)
+
+    hm_payload_path = '/root/Code/afl-pwnable/handmade_payload'
+    for file_name in os.listdir(hm_payload_path):
+        full_file_name = os.path.join(hm_payload_path, file_name)
+        full_file_name_dst = os.path.join(directory, file_name)
+        if (os.path.isfile(full_file_name)):
+            try:
+                shutil.copy(full_file_name, full_file_name_dst)
+            except IOException:
+                continue
 
 
 def crawl_challenges(url, token, directory):
